@@ -1,12 +1,15 @@
 package com.collegeproject.mysocialmedia.Activities;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.widget.Button;
@@ -26,6 +29,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
 import java.util.Calendar;
 
 public class FileUploadActivity extends AppCompatActivity {
@@ -44,6 +48,10 @@ public class FileUploadActivity extends AppCompatActivity {
     private StorageReference storageReference;
     private FirebaseUser firebaseUser;
     private DatabaseReference dbReference;
+
+    private String[] perms = {"android.permission.WRITE_EXTERNAL_STORAGE"};
+
+    private int permsRequestCode = 200;
 
 
     @Override
@@ -66,6 +74,10 @@ public class FileUploadActivity extends AppCompatActivity {
 
         btnFilePickUp.setOnClickListener(view -> showFileChooser());
         fileUploadButton.setOnClickListener(view -> uploadFile());
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(perms, permsRequestCode);
+        }
 
         radioGroup.setOnCheckedChangeListener((group, checkedId) -> isPrivate = getPrivacy(checkedId));
 
@@ -125,7 +137,6 @@ public class FileUploadActivity extends AppCompatActivity {
         isPrivate = getPrivacy(radioGroup.getCheckedRadioButtonId());
 
 
-
         FileDBEntry fileDBEntry = new FileDBEntry();
         fileDBEntry.setEntryId(dbReference.child("files").push().getKey());
         fileDBEntry.setDateOfAddition(Calendar.getInstance().getTime());
@@ -143,7 +154,6 @@ public class FileUploadActivity extends AppCompatActivity {
         finish();
 
 
-
     }
 
     private void showFileChooser() {
@@ -159,7 +169,7 @@ public class FileUploadActivity extends AppCompatActivity {
         if (requestCode == PICK_FILE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
 //            tex = data.getData();
             filePath = data.getData();
-            fileName = firebaseUser.getUid() + "/" + getFileName(filePath);
+            fileName = firebaseUser.getUid() + File.separator + getFileName(filePath);
             textFileName.setText(getFileName(filePath));
 
         }
@@ -185,6 +195,29 @@ public class FileUploadActivity extends AppCompatActivity {
             }
         }
         return result;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Override
+    public void onRequestPermissionsResult(int permsRequestCode, String[] permissions, int[] grantResults) {
+
+        switch (permsRequestCode) {
+
+            case 200:
+
+                boolean storageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                checkPermmsionDenied(storageAccepted);
+                break;
+
+        }
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void checkPermmsionDenied(boolean storageAccepted) {
+        if (!storageAccepted) {
+            shouldShowRequestPermissionRationale(perms[0]);
+        }
     }
 
 }
